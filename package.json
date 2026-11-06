@@ -19,7 +19,7 @@
     "@tsparticles/confetti": "4.5.2",
     "@vincentt-xr/analytics": "^0.3.2",
     "@vincentt-xr/harness": "^3.4.0",
-    "@vincentt-xr/runtime": "2026.11.2",
+    "@vincentt-xr/runtime": "2026.11.5",
     "@vincentt-xr/sdk": "2.0.0-alpha.14",
     "onnxruntime-web": "^1.27.0",
     "qrcode.react": "4.2.0",
