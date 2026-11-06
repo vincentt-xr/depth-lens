@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/images/logo.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <link href="/src/index.css" rel="stylesheet" />
     <script>
       // Resolve theme before first paint to avoid flash.
@@ -27,21 +27,22 @@
       })();
     </script>
 
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap"
-      rel="stylesheet"
-    />
+    <!-- Tracking files come from here. They are not preloaded: on a slow link a
+         multi-megabyte preload competes with the scripts the first paint needs. -->
+    <link rel="preconnect" href="https://cdn.vincentt.studio" crossorigin />
 
-    <title>Depth Lens - Vincentt</title>
-    <meta name="description" content="A hand-tracked AR camera lens that transforms your view with a reactive glitch effect when you clench your fist." />
+    <!-- Title, description and share image: edit app.config.json, not this file.
+         This file is replaced by a template upgrade; app.config.json is yours.
+         `vincentt build` and scripts/dev.mjs (via scripts/app-metadata.mjs)
+         write its values into these tags. -->
+    <title>XR App - Vincentt</title>
+    <meta name="description" content="An AR experience built with Vincentt" />
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Vincentt" />
-    <meta property="og:title" content="Depth Lens - Vincentt" />
+    <meta property="og:title" content="XR App - Vincentt" />
     <meta
       property="og:description"
-      content="A hand-tracked AR camera lens that transforms your view with a reactive glitch effect when you clench your fist."
+      content="An AR experience built with Vincentt"
     />
     <meta property="og:image" content="/images/og-default.jpg" />
     <meta property="og:image:type" content="image/jpeg" />
@@ -52,10 +53,10 @@
       content="Vincentt — Augmented Reality App builder"
     />
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="Depth Lens - Vincentt" />
+    <meta name="twitter:title" content="XR App - Vincentt" />
     <meta
       name="twitter:description"
-      content="A hand-tracked AR camera lens that transforms your view with a reactive glitch effect when you clench your fist."
+      content="An AR experience built with Vincentt"
     />
     <meta name="twitter:image" content="/images/og-default.jpg" />
     <meta

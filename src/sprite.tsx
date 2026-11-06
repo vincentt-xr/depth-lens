@@ -1,4 +1,3 @@
-/* eslint-disable react/no-unknown-property */
 // Sprite-sheet animation primitives for Scene.tsx.
 //
 // A sprite sheet is one image holding a grid of animation frames; playback

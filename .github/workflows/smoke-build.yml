@@ -5,14 +5,24 @@ name: Smoke Build
 #
 # Catches any template change that breaks the production build, and — via the frozen
 # lockfile — a dependency bump that wasn't reflected in the lockfile.
+#
+# TWO JOBS, BECAUSE THIS FILE SHIPS INTO EVERY SCAFFOLDED PROJECT
+# (vincentt-xr/v2-template#116). `smoke` is the creator's CI too: install, build,
+# typecheck, lint, test, and the zone manifest's floor. `contract` is the
+# template's own: the agent-contract and pointer checks, the generated sections,
+# and the manifest's completeness rule — true only of the template, and false by
+# construction of any project that has added a file. It runs only in this repo.
+# A creator never edits this file to get a green build.
 
 on:
   pull_request:
     branches:
       - main
+      - 'hotfix/**'
   push:
     branches:
       - main
+      - 'hotfix/**'
   workflow_dispatch:
 
 jobs:
@@ -22,10 +32,9 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      # No version input: the action reads package.json's packageManager pin.
       - name: Set up pnpm
         uses: pnpm/action-setup@v4
-        with:
-          version: 9
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -36,8 +45,181 @@ jobs:
       - name: Install (frozen lockfile)
         run: pnpm install --frozen-lockfile
 
+      # `pnpm build` is `vincentt build`. The CLI is build tooling, which the
+      # project never depends on, so CI installs it the way a creator does.
+      - name: Install the Vincentt CLI
+        run: npm install --global @vincentt-xr/cli@0.27.4
+
       - name: Build
         run: pnpm build
 
       - name: Typecheck
         run: pnpm typecheck
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Test
+        run: pnpm test
+
+      # The zone manifest decides which files a template upgrade may overwrite in a
+      # creator's repository, so its floor (what an entry may NAME) is checked in
+      # the creator's repo as well as here. Only the template is `--strict`: there,
+      # every src/* file must be classified exactly once; in a creator's repo an
+      # unlisted src/* file is the creator's own, and that is the normal case.
+      # The same check runs at the tag (release.yml, strict): a check that does not
+      # run at the tag does not protect the artifact. Fetch depth is full so the
+      # own-commit check can read the manifest's history.
+      - name: Fetch history for the manifest own-commit check
+        run: git fetch --unshallow || true
+
+      - name: The zone manifest passes the floor (complete, in the template repo)
+        run: node scripts/check-zone-manifest.mjs ${{ github.repository == 'vincentt-xr/v2-template' && '--strict' || '' }}
+
+  contract:
+    # Template-maintainer checks. See the header: these are true of the template
+    # and of nothing scaffolded from it.
+    if: github.repository == 'vincentt-xr/v2-template'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      # A host's conventional filename may exist only as a POINTER (B-F3-5
+      # tripwire c). A pointer that has grown content is a second contract, and
+      # the host holding the longer one is the privileged host. These two checks
+      # catch the mechanical half of that; the semantic half is review.
+      #
+      # The filename list lives in .github/pointers.txt, read by this workflow
+      # and by release.yml. Adding a second host's pointer is one line there, so
+      # the two workflows cannot drift and a new pointer is checked at the tag
+      # as well as on the branch.
+      #
+      # The verb pattern over-matches `vincentt` followed by any lowercase word,
+      # not only a verb. That is deliberate: a pointer mentioning `vincentt` in
+      # prose is already drifting toward content, and an alternation of the real
+      # verb names would be a second copy of the CLI's pinned verb surface in a
+      # different repository on a different release cadence.
+      - name: Pointers carry no content
+        run: |
+          if [ ! -f .github/pointers.txt ]; then
+            echo "::error::.github/pointers.txt is missing — the pointer checks would silently pass with nothing checked."
+            exit 1
+          fi
+          while read -r f; do
+            [ -n "$f" ] || continue
+            lines=$(wc -l < "$f")
+            bytes=$(wc -c < "$f")
+            if [ "$lines" -gt 12 ]; then
+              echo "::error file=$f::pointer is $lines lines (max 12) — it has grown content. The loop contract is AGENTS.md."
+              exit 1
+            fi
+            if [ "$bytes" -gt 1200 ]; then
+              echo "::error file=$f::pointer is $bytes bytes (max 1200) — it has grown content. The loop contract is AGENTS.md."
+              exit 1
+            fi
+            if grep -qE '(npx )?vincentt [a-z]+' "$f"; then
+              echo "::error file=$f::pointer names a vincentt verb — a verb list is the loop contract's job, not a pointer's."
+              exit 1
+            fi
+          done < .github/pointers.txt
+
+      # The withdrawn one-host zero-action path must not return to the contract.
+      # Scoped to AGENTS.md ONLY, never to the pointers: a pointer named
+      # CLAUDE.md obviously contains the string, which is what a pointer is.
+      - name: The loop contract names no host
+        run: |
+          if grep -qiE 'claude|cursor|codex|copilot|self-schedule' AGENTS.md; then
+            echo "::error file=AGENTS.md::the loop contract names a host or the withdrawn self-schedule path (B-F3-5 tripwire a/b)."
+            exit 1
+          fi
+
+      # create scaffolds an empty folder, then registers. The verb list must say
+      # so: grounding ships into creators' repositories and is never read back
+      # (B-F3-5 tripwire c), so a behavior change we do not land in the same
+      # commit is unseeable, unwarnable and unfixable (B-F2-9).
+      - name: The verb list describes what create does about the folder
+        run: |
+          if ! grep -qiE 'scaffolds the starter first' AGENTS.md; then
+            echo "::error file=AGENTS.md::the verb list does not say what \`create\` does about an empty folder. It scaffolds, then registers (create-scaffolds, B-F2-9)."
+            exit 1
+          fi
+          if ! grep -qF 'vincentt init' AGENTS.md; then
+            echo "::error file=AGENTS.md::the verb list does not name \`vincentt init\`. An authed path may absorb an unauthenticated capability only while the open route stays named (B-F2-9)."
+            exit 1
+          fi
+
+      # The recognition section promises "the project's agent contract describes how to find out
+      # which [project this folder is], and what to do in each case". The contract keeps that
+      # promise only while it names the listing verb and carries the coming-back guidance, so the
+      # promise is asserted rather than left to prose (D-Create-never-scaffolds failed the other
+      # way round). The unknown-case string is matched verbatim because an agent matching CLI
+      # output has to find the same words in both places.
+      - name: The contract answers the recognition section's coming-back promise
+        run: |
+          if ! grep -qF 'vincentt projects' AGENTS.md; then
+            echo "::error file=AGENTS.md::the verb list does not name \`vincentt projects\`. The recognition section promises the contract says how to find out which project a folder is; the listing verb is that answer (B-F2-9)."
+            exit 1
+          fi
+          if ! grep -qF 'vincentt link <project-id>' AGENTS.md; then
+            echo "::error file=AGENTS.md::the contract does not name \`vincentt link <project-id>\`. It is the remedy the unknown case points at, and without it that branch has no next step (B-F2-9)."
+            exit 1
+          fi
+          if ! grep -qF '### Picking up a project' AGENTS.md; then
+            echo "::error file=AGENTS.md::the contract carries no \`Picking up a project\` guidance. Naming the verb without saying what to do with its three answers leaves the recognition section's promise unkept (B-F2-9)."
+            exit 1
+          fi
+          if ! grep -qF 'no folder known on this machine' AGENTS.md; then
+            echo "::error file=AGENTS.md::the contract does not repeat the CLI's unknown-case string verbatim. An agent matching output must find the same words here (B-F2-9)."
+            exit 1
+          fi
+          if ! grep -qF 'It does not go there.' AGENTS.md; then
+            echo "::error file=AGENTS.md::the contract does not say the listing reports a location without going there. An agent handed a path is the reader most likely to \`cd\` into it."
+            exit 1
+          fi
+          if ! grep -qF 'Never hand over a localhost address.' AGENTS.md; then
+            echo "::error file=AGENTS.md::the contract does not forbid handing over a localhost address. The console page is the only address a reply carries (B-F3-6)."
+            exit 1
+          fi
+
+      # The recognition section is GENERATED from recognition.md in vincentt-xr/agent-plugin.
+      # Checked on the branch as well as at the tag, so a hand-edit is caught in review rather
+      # than at release.
+      - name: The recognition section is generated, not authored
+        run: node scripts/check-recognition.mjs
+
+      # The create-endings section describes what `vincentt create` returns, which is behavior
+      # owned by @vincentt-xr/cli in vincentt-xr/toolchain. Its suite asserts the CLI ends the way
+      # the fixture says; this asserts AGENTS.md says the same thing. Neither side can drift alone
+      # without going red. No fetch — the tracked copy is the whole point (B-F2-9(b)).
+      - name: The create-endings section matches the CLI's fixture
+        run: node scripts/check-create-endings.mjs
+
+      # QA-F5-C4. The outside-files contract is present, outside every generated region,
+      # host-neutral (B-F3-5), and carries "10 MB" / "2048 px", the literals the CLI's publish
+      # warning pins on the toolchain side. Template-only: a creator may rewrite AGENTS.md.
+      - name: The outside-files contract is present, pinned and host-neutral
+        run: node scripts/check-outside-assets.mjs
+
+      # The api's guide bundle cuts one connector guide topic per `## ` heading of GROUNDING.md, so a
+      # grounding edit must not drop, rename or reorder a guide topic.
+      - name: GROUNDING.md splits into the connector guide topics
+        run: node scripts/check-guide-topics.mjs
+
+      # QA-F2-G34 assertion B. The step above checks the BRANCH; this one checks
+      # what `vincentt init` ACTUALLY CLONES, which is the moving `latest` tag and
+      # not this branch. Three outcomes: PASS, BLOCKED (the tag predates the
+      # guidance — the expected state between merge and tag cut, exit 0 with a
+      # stated reason), FAIL (the tag has the section with different words, exit 1).
+      # A hardcoded copy of this text in the toolchain repo would pass while this
+      # file drifted, which is why the assertion lives here.
+      - name: Fetch tags so the cloned ref can be read
+        run: git fetch --tags --force --depth=1 || true
+
+      - name: The contract at the ref `init` clones carries the coming-back guidance
+        run: node scripts/qa-rbp-check-coming-back.mjs
