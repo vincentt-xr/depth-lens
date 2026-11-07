@@ -1,4 +1,3 @@
-/* eslint-disable react/no-unknown-property */
 import { useRef } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
@@ -6,7 +5,6 @@ import {
   ScreenSpaceUI,
   ScreenText,
   XRModel,
-  type ScreenTransform2DSettings,
 } from "@vincentt-xr/sdk";
 import { HandTracker } from "@vincentt-xr/sdk/tracking";
 import {
@@ -236,35 +234,24 @@ const HandDrivenLens = () => {
   );
 };
 
-const INTRO_TRANSFORM: ScreenTransform2DSettings = {
-  enabled: true,
-  position: { x: 0, y: -500 },
-  size: { width: 660, height: 140 },
-  pivot: [0.5, 0.5],
-  rotation: 0,
-  scale2D: { x: 1, y: 1 },
-  referencePixelsPerUnit: 32,
-  renderOrder: 1000,
-  overlay: true,
-  visible: true,
-  showTransformGuides: false,
-};
-
+// The hint is a literal `ScreenText`, so the console's visual editor can retype,
+// recolour, resize and move it. Text or placement read from a variable can only
+// be changed in code.
 const Intro = () => (
-    <ScreenSpaceUI>
-      <ScreenText
-        name="depthLensHint"
-        text="Clench to trigger the glitch"
-        screenTransform={INTRO_TRANSFORM}
-        textAlign="center"
-        verticalAlign="center"
-        fontSize={72}
-        resolution={140}
-        bgFit="full"
-        bgColor="rgba(7, 20, 31, 0.72)"
-      />
-    </ScreenSpaceUI>
-  );
+  <ScreenSpaceUI>
+    <ScreenText
+      name="Clench hint"
+      text="Clench to trigger the glitch"
+      screenTransform={{ position: { x: 0, y: -500 }, size: { width: 660, height: 140 }, rotation: 0, renderOrder: 1000 }}
+      textAlign="center"
+      verticalAlign="center"
+      fontSize={72}
+      resolution={140}
+      bgFit="full"
+      bgColor="rgba(7, 20, 31, 0.72)"
+    />
+  </ScreenSpaceUI>
+);
 
 export const Scene = () => (
   <>

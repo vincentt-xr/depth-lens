@@ -28,6 +28,28 @@
     "import/prefer-default-export": "off",
     "react/jsx-filename-extension": [1, { "extensions": [".tsx"] }],
     "react/function-component-definition": "off",
+    "no-void": "off",
     "@typescript-eslint/no-unused-vars": "warn"
-  }
+  },
+  "overrides": [
+    {
+      "files": ["src/**/*.test.ts", "src/**/*.test.tsx"],
+      "rules": {
+        "no-promise-executor-return": "off",
+        "no-restricted-syntax": "off"
+      }
+    },
+    {
+      "files": ["src/**/*.tsx"],
+      "rules": {
+        "react/no-unknown-property": "off"
+      }
+    },
+    {
+      "files": ["src/**/*.sim.ts", "src/**/*.sim.tsx", "src/**/sim/**/*.ts"],
+      "rules": {
+        "no-param-reassign": ["error", { "props": false }]
+      }
+    }
+  ]
 }

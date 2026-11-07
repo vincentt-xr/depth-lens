@@ -1,0 +1,9 @@
+# Settings live here, not in .npmrc: hosted source refuses .npmrc as a
+# credentials file. pnpm reads nodeLinker from this file from 10.6 on; the
+# packages entry lets older pnpm install (isolated) instead of erroring.
+packages:
+  - .
+nodeLinker: hoisted
+onlyBuiltDependencies:
+  - esbuild
+  - protobufjs
